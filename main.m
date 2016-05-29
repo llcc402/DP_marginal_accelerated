@@ -45,7 +45,7 @@ for iter = 1:maxIter
             prob(j) = tb(j) * mvnpdf(data(i,:), centers(j,:), sigma_0^2 * eye(size(data,2)));
         end
         prob(length(tb)+1) = alpha / (2*pi) * (sigma_0^(-2) + sigma_1^(-2)) / sigma_0 / sigma_1 ...
-            * exp(-1/2 * sigma_0^(-2) * sigma_1^2 / (sigma_0^(-2) + sigma_1^(-2)) * (data(i,:)* data(i,:)'));
+            * exp(-1/2 * sigma_0^(-2) * sigma_1^(-2) / (sigma_0^(-2) + sigma_1^(-2)) * (data(i,:)* data(i,:)'));
         
         prob = prob / sum(prob);
         
