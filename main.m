@@ -10,28 +10,27 @@ clear C fid
 
 %% preprocessing
 
-data = data - repmat(mean(data), size(data,1), 1);
+[U, S, V] = svd(data);
+data = U(:,1:2);
 data = data ./ repmat(std(data), size(data,1), 1);
 
-hold on
-scatter(data(1:50,2), data(1:50,3), [], 'black')
-scatter(data(51:100,2), data(51:100,3), [], 'blue')
-scatter(data(101:150,2), data(101:150,3), [], 'red')
-hold off
+% hold on
+% scatter(data(1:50,2), data(1:50,3), [], 'black')
+% scatter(data(51:100,2), data(51:100,3), [], 'blue')
+% scatter(data(101:150,2), data(101:150,3), [], 'red')
+% hold off
 
 %% set parameters
 
 maxIter = 100;
-sigma_0 = .3; % the standard deviation for likelihood
-sigma_1 = 3; % the standard deviation for the base measure
-alpha = 3;
+lambda_0 = 1; % the standard deviation for the base measure
+lambda_1 = 2.5; % the standard deviation for likelihood
+alpha = 1;
 
 
 %% initial setting
-
-data = data(:,2:3);
 ix = ones(size(data,1), 1);
-centers = zeros(size(data));
+centers = zeros(size(data)) + repmat(mean(data), size(data,1), 1);
 
 %% DP sampling
 for iter = 1:maxIter
@@ -42,11 +41,17 @@ for iter = 1:maxIter
         
         prob = zeros(length(tb)+1, 1);
         for j = 1:length(tb)
-            prob(j) = tb(j) * mvnpdf(data(i,:), centers(j,:), sigma_0^2 * eye(size(data,2)));
+            if tb(j) > 0
+                prob(j) = log(tb(j)) - lambda_1^2/2 * ...
+                    (data(i,:) - centers(j,:)) * (data(i,:) - centers(j,:))';
+            end
         end
-        prob(length(tb)+1) = alpha / (2*pi) * (sigma_0^(-2) + sigma_1^(-2)) / sigma_0 / sigma_1 ...
-            * exp(-1/2 * sigma_0^(-2) * sigma_1^(-2) / (sigma_0^(-2) + sigma_1^(-2)) * (data(i,:)* data(i,:)'));
+        prob(length(tb)+1) = log(alpha) + 2*log(lambda_0) - log(lambda_0^2 + lambda_1^2) ...
+            - lambda_1^2 * lambda_0^2 / 2 / (lambda_0^2 + lambda_1^2) ...
+            * data(i,:) * data(i,:)';
         
+        prob = prob - max(prob);
+        prob = exp(prob);
         prob = prob / sum(prob);
         
         [~,~,ix(i)] = histcounts(rand(1), [0; cumsum(prob)]);
@@ -55,7 +60,11 @@ for iter = 1:maxIter
     B = accumarray(ix, 1:length(ix), [], @(x){x});
     for i = 1:length(B)
         if ~isempty(B{i})
-            centers(i,:) = mean(data(B{i},:));
+            if length(B{i}) == 1
+                centers(i,:) = data(B{i},:);
+            else
+                centers(i,:) = mean(data(B{i},:));
+            end
         end
     end
     
