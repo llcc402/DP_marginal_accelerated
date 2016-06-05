@@ -31,6 +31,10 @@ for iter = 1:maxIter
         % sample index
         [~,~,ix(i)] = histcounts(rand(1), [0, cumsum(prob)]);
         
+        if ix(i) == length(tb) + 1
+            centers(length(tb) + 1) = data(i);
+        end
+        
     end
     
     % update centers
